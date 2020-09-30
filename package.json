@@ -1,0 +1,23 @@
+{
+  "name": "ajudator",
+  "version": "1.0.0",
+  "description": "Ajuda a corrigir atividades de Web",
+  "main": "main.mjs",
+  "scripts": {
+    "start": "node main.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Flavio Coutinho <fegemo@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "decompress": "^4.2.1",
+    "log-update": "^4.0.0",
+    "serve-handler": "^6.1.3",
+    "terminal-link": "^2.1.1",
+    "unrar-promise": "^2.0.1"
+  },
+  "bin": {
+    "ajudator": "./main.mjs"
+  }
+}
