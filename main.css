@@ -1,0 +1,134 @@
+html, body {
+    min-height: 100vh;
+}
+
+body {
+    margin: 10px;
+    border: 1px solid #333;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: auto 1fr;
+    font-family: 'Yusei Magic', sans-serif;
+}
+
+body > header {
+    background-image: linear-gradient(to bottom right, #333, #9193a3);
+    box-shadow: 6px 6px 6px #0003;
+    grid-column: 1 / 3;
+    color: white;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: .75em 1.5em;
+    align-items: center;
+}
+
+body > header > h1,
+body > header > h2 {
+    margin: 0;
+}
+
+nav {
+    background-color: lightgray;
+    box-shadow: 2px 2px 5px #0003;
+    border-right: 1px solid silver;
+}
+
+nav p {
+    margin-left: 1em;
+}
+
+nav ul {
+    padding: 0;
+}
+
+nav li {
+    list-style-type: none;
+    padding: .75em 1.25em;
+    background-color: #fff8;
+}
+
+nav li:not(:last-of-type) {
+    margin-bottom: 0.25em;
+}
+
+nav li.active {
+    border-left: 6px solid darkgoldenrod;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+pre, code {
+    font-family: 'Fira Code', monospace;
+}
+
+a:link, a:visited {
+    color: darkgoldenrod;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #eda800;
+    text-decoration: underline;
+}
+
+a:active {
+    color: #0b20b8;
+}
+
+main > header {
+    padding: .75em 1.25rem;
+}
+
+main > header > h3 {
+    margin: 0;
+}
+
+main > pre {
+    padding: 1.25rem;
+}
+
+.annotator-hl {
+    background-color: rgb(101 0 194 / 34%) !important;
+    cursor: help;
+}
+
+.hljs-ln-numbers {
+    color: #bbb;
+}
+
+.hljs-ln-code {
+    padding-left: 0.75em !important
+}
+
+.comment {
+    background-color: rgb(101 0 194 / 34%);
+    float: right;
+    font-weight: normal;
+}
+
+.comment::before {
+    content: "<- ";
+    display: inline-block;
+}
+
+
+@media print {
+    nav {
+        display: none;
+    }
+
+    .annotator-hl {
+        background-color: rgb(101 0 194 / 34%) !important;
+        -webkit-print-color-adjust: exact; 
+    }
+    .comment {
+        background-color: rgb(101 0 194 / 34%) !important;
+        -webkit-print-color-adjust: exact; 
+    }
+}

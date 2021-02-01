@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atividade</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500&family=Yusei+Magic&display=swap">
+    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="highlight.js/styles/default.css">
+</head>
+<body>
+    <header>
+        <h1>Atividade <%= activityName %></h1>
+        <h2>Aluno: <%= studentName %></h2>
+    </header>
+    <nav>
+        <p>Arquivos:</p>
+        <ul>
+            <% files.forEach(f => {%>
+                <li class="<%= file && (file.name === f.name) ? 'active' : '' %>">
+                    <% if (f.url) { %>
+                        <a href="<%= f.url %>"><%= f.name %></a>
+                    <% } else { %>
+                        <%= f.name %>
+                    <% } %>
+                </li>
+            <% }) %>
+        </ul>
+    </nav>
+    <main>
+        <header>
+            <h3><%= file.name %></h3>
+        </header>
+        <pre><code><%= file.sourceCode %></code></pre>
+    </main>
+    <script src="highlight.js/highlight.pack.js"></script>
+    <script src="highlight.js/highlightjs-line-numbers.min.js"></script>
+    <script src="annotator/annotator.min.js"></script>
+    <script src="main.js" type="module"></script>
+</body>
+</html>
