@@ -3,6 +3,7 @@ html, body {
 }
 
 body {
+    font-size: 12px;
     margin: 10px;
     border: 1px solid #333;
     display: grid;
@@ -28,7 +29,7 @@ body > header > h2 {
     margin: 0;
 }
 
-nav {
+#left-side {
     background-color: lightgray;
     box-shadow: 2px 2px 5px #0003;
     border-right: 1px solid silver;
@@ -56,6 +57,48 @@ nav li.active {
     border-left: 6px solid darkgoldenrod;
 }
 
+.stamp-button {
+    transition: filter ease-out 400ms;
+    z-index: 10;
+}
+
+#stamp-button-container {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.stamp-button-outer {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#stamp-button-container > p {
+    margin-left: 1em;
+}
+
+#stamp-buttons {
+    display: grid;
+    padding: 0 1.75em;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 1.75em;
+    row-gap: 1.75em;
+}
+
+#stamp-buttons img {
+    width: 100px;
+}
+
+.stamp-button.another-being-dragged {
+    filter: grayscale(1) contrast(0.5) brightness(2);
+}
+
+#stamps-container {
+    position: absolute;
+}
+
 main {
     display: flex;
     flex-direction: column;
@@ -64,7 +107,8 @@ main {
 }
 
 pre, code {
-    font-family: 'Fira Code', monospace;
+    font-family: 'Ubuntu Mono', monospace;
+    font-size: 16px;
 }
 
 a:link, a:visited {
@@ -91,6 +135,8 @@ main > header > h3 {
 
 main > pre {
     padding: 1.25rem;
+    position: relative;
+    z-index: 0;
 }
 
 .annotator-hl {
@@ -106,10 +152,15 @@ main > pre {
     padding-left: 0.75em !important
 }
 
+code {
+    transition: all ease-out 200ms;
+}
+
 .comment {
     background-color: rgb(101 0 194 / 34%);
     float: right;
     font-weight: normal;
+    color: #000;
 }
 
 .comment::before {
@@ -117,10 +168,69 @@ main > pre {
     display: inline-block;
 }
 
+.comment a {
+    color: #ff5722;
+}
+
+.comment a:hover {
+    color: white;
+}
+
+.stamp,
+.stamp-button {
+    --border-size: 6px;
+    --border-size-neg: calc(var(--border-size) * -1);
+    --border-color: white;
+    --outer-border-size: 2px;
+    --outer-border-size-neg: calc(var(--outer-border-size) * -1);
+    --outer-border-color: #d4d4d4;
+    filter: 
+        drop-shadow(var(--border-size)     0px 0px var(--border-color))
+        drop-shadow(var(--border-size-neg) 0px 0px var(--border-color))
+        drop-shadow(0px var(--border-size)     0px var(--border-color))
+        drop-shadow(0px var(--border-size-neg) 0px var(--border-color))
+        drop-shadow(var(--outer-border-size)     0px var(--outer-border-size) var(--outer-border-color))
+        drop-shadow(var(--outer-border-size-neg) 0px var(--outer-border-size) var(--outer-border-color))
+        drop-shadow(0px var(--outer-border-size)     var(--outer-border-size) var(--outer-border-color))
+        drop-shadow(0px var(--outer-border-size-neg) var(--outer-border-size) var(--outer-border-color));
+    touch-action: none;
+    box-sizing: border-box;
+}
+    
+.stamp {
+    position: absolute;
+    transition: filter ease-out 400ms;
+    transform-origin: center center;
+}
+
+.stamp-button {
+    --border-size: 2px;
+    --outer-border-size: 0px;
+    --outer-border-color: #000;
+}
+
+.stamp.can-drop {
+    animation: growing .5s ease-in-out 0s infinite alternate;
+}
+
+.drop-target code {
+    outline: 4px dashed gray;
+    background-color: #efefef !important;
+}
+
+@keyframes growing {
+    from { scale: 1 }
+    to   { scale: 1.1 }
+}
 
 @media print {
-    nav {
+    #left-side {
         display: none;
+    }
+
+    body > header {
+        box-shadow: initial;
+        border-bottom: 1px solid gray;
     }
 
     .annotator-hl {
@@ -130,5 +240,24 @@ main > pre {
     .comment {
         background-color: rgb(101 0 194 / 34%) !important;
         -webkit-print-color-adjust: exact; 
+    }
+
+    @page {
+      size: landscape;
+      margin: 0;
+    }
+
+    html, body {
+        min-height: initial;
+    }
+
+    table { page-break-inside:auto }
+    tr    { page-break-inside:avoid; page-break-after:auto }
+    thead { display:table-header-group; }
+    tfoot { display:table-footer-group; }
+    
+    tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
     }
 }

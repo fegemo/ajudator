@@ -19,6 +19,7 @@ import { dirname, resolve } from 'path';
 import { readdir, readFile as readFilePromise, writeFile as writeFilePromise } from 'fs/promises';
 import crypto from 'crypto';
 import url from 'url'
+import cheerio from 'cheerio'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,6 +27,7 @@ const __dirname = dirname(__filename);
 
 const log = logUpdate.create(process.stdout, { showCursor: false });
 const PORT = 3001
+const CODE_PORT = PORT + 1
 const SERVER_URL = `http://localhost:${PORT}`
 const SAVED_DATA_PATH = 'notas'
 
@@ -72,12 +74,15 @@ rl.on('line', async line => {
 
 
 const MOODLE_FOLDER_REGEX = /([^_]+)_[\d]+_assignsubmission_file_/
-const ARCHIVE_EXTENSIONS = ['.zip', '.7z', '.tar.gz', '.bzip', '.rar']
+const MOODLE_COMMENT_REGEX = /([^_]+)_[\d]+_assignsubmission_onlinetext_/
+const MOODLE_COMMENT_TEMPLATE_REGEX = /<!DOCTYPE html><html>/
+const ARCHIVE_EXTENSIONS = ['.zip', '.7z', '.tar.gz', '.tar', '.bzip', '.rar']
 
 class Student {
-    constructor(name, directory, grade) {
+    constructor(name, directory, comment, grade) {
         this.name = name;
         this.directory = directory;
+        this.comment = comment;
         this.graded = new Promise((res, rej) => this.resolveGrading = res);
 
         if (!directory) {
@@ -111,6 +116,10 @@ class Student {
             this.resolveGrading()
         }
     }
+
+    static clearName(name) {
+        return name.replace(/'/g, '')
+    }
 }
 
 function renderState() {
@@ -124,10 +133,24 @@ fs.readFile('./alunos.json', 'utf-8', (err, data) => {
         const previousGrades = JSON.parse((data || '{ "submissoes": [] }')).submissoes;
         fs.readdir('.', async (err, files) => {        
             const submissionFolders = files.filter(f => MOODLE_FOLDER_REGEX.test(f));
+            const commentFolders = files.filter(f => MOODLE_COMMENT_REGEX.test(f));
             students = allStudents.map(name => {
-                const directory = submissionFolders.find(f => MOODLE_FOLDER_REGEX.exec(f)[1] === name);
+                const directory = submissionFolders.find(f => MOODLE_FOLDER_REGEX.exec(f)[1] === Student.clearName(name));
                 const grade = (previousGrades.find(a => a.nome === name) || {}).nota
-                return new Student(name, directory, grade);
+                let commentDirectory = commentFolders.find(f => MOODLE_COMMENT_REGEX.exec(f)[1] === Student.clearName(name))
+                let comment = null
+
+                if (commentDirectory) {
+                    comment = fs.readFileSync(path.join(commentDirectory, 'textoonline.html'), 'utf-8')
+                    if (MOODLE_COMMENT_TEMPLATE_REGEX.test(comment)) {
+                        const $ = cheerio.load(comment)
+                        comment = $('body > p').html()
+                    } else {
+                        comment = null
+                    }
+                }
+
+                return new Student(name, directory, comment, grade);
             });
     
             console.log(`Bem vindo ao ${chalk.yellow('ajudator')}!`);
@@ -137,7 +160,7 @@ fs.readFile('./alunos.json', 'utf-8', (err, data) => {
             }
         
             console.log(`  1. Abra o servidor em ${terminalLink(SERVER_URL, SERVER_URL)}.`);
-            console.log(`  2. Digite uma nota de ${chalk.yellow('0 a 100')} para cada trabalho.`);
+            console.log(`  2. Digite uma nota de ${chalk.yellow('0 a 200')} (%) para cada trabalho.`);
             console.log('')
             await setupServer()
         
@@ -242,9 +265,15 @@ function findExtractAndShowSubmission(student) {
                         student.rootFolder = rootFolder;
                     })
                     .catch(error => {
-                        console.log(`Erro ao descompactar '${archivePath}' de ${student.name}:`)
-                        console.log(error)
-                        reject()
+                        const rootFolder = findFolderWithHTML(student, p)
+                        if (!rootFolder) {
+                            console.log(`Erro ao descompactar '${archivePath}' de ${student.name}:`)
+                            console.log(error)
+                            reject()
+                            
+                        } else {
+                            student.rootFolder = rootFolder;
+                        }
                     })
                     .then(() => student.graded)
                     .then(() => resolve())
@@ -321,31 +350,45 @@ function setupServer() {
             const currentStudentFolder = students[currentSubmissionIndex].rootFolder;
             const injection = getHTMLInjection(students[currentSubmissionIndex])
             if (currentStudentFolder) {
-                return handler(request, response, { public: currentStudentFolder }, {
-                    lstat: async absolutePath => {
-                        const stats = await promisify(fs.lstat)(absolutePath)
-                        if (absolutePath.endsWith('.html')) {
-                            stats.size += injection.length;
-                        }
-                        return stats;
-                    },
-                    createReadStream: (absolutePath, streamOpts) => {
-                        const stream = fs.createReadStream(absolutePath, streamOpts)
-                        const appendTransform = new Transform({
-                            transform(chunk, encoding, callback) {
-                                callback(null, chunk);
-                            },
-                            flush(callback) {
-                                if (absolutePath.endsWith('.html')) {
-                                    this.push(injection, 'utf8');
-                                }
-                                callback();
+                return handler(request, response, { 
+                        public: currentStudentFolder,
+                        headers: [
+                            {
+                                source: '**/*',
+                                headers: [
+                                    {
+                                        key: 'Cache-Control',
+                                        value: 'no-cache'
+                                    }
+                                ]
                             }
-                        });
-                        
-                        return stream.pipe(appendTransform);
+                        ]
+                    }, {
+                        lstat: async absolutePath => {
+                            const stats = await promisify(fs.lstat)(absolutePath)
+                            if (absolutePath.endsWith('.html')) {
+                                stats.size += injection.length;
+                            }
+                            return stats;
+                        },
+                        createReadStream: (absolutePath, streamOpts) => {
+                            const stream = fs.createReadStream(absolutePath, streamOpts)
+                            const appendTransform = new Transform({
+                                transform(chunk, encoding, callback) {
+                                    callback(null, chunk);
+                                },
+                                flush(callback) {
+                                    if (absolutePath.endsWith('.html')) {
+                                        this.push(injection, 'utf8');
+                                    }
+                                    callback();
+                                }
+                            });
+                            
+                            return stream.pipe(appendTransform);
+                        }
                     }
-                });
+                );
             } else {
                 return 'Nenhum aluno selecionado.'
             }
@@ -358,7 +401,6 @@ function setupServer() {
     const activityName = getActivityName()
 
     serverPromises.push(new Promise((resolve, reject) => {
-        const currentStudent = students[currentSubmissionIndex];
         const app = express()
         app.set('views', __dirname)
         app.set('view engine', 'ejs')
@@ -372,6 +414,7 @@ function setupServer() {
         app.use(express.urlencoded({ extended: true }));
         app.use(express.json());
         app.get('/', (req, res) => {
+            const currentStudent = students[currentSubmissionIndex];
             let listFiles = currentStudent.rootFolder ? getFiles(currentStudent.rootFolder) : Promise.resolve([])
             listFiles.then(files => files.map(f => {
                 const fileName = f.substr(f.indexOf(currentStudent.rootFolder) + currentStudent.rootFolder.length + 1)
@@ -384,20 +427,22 @@ function setupServer() {
                 return file
             }))
                 .then(directoryFiles => {
-        
                     let currentFilePath = req.query.arquivo
                     let currentFileContents = null
-                    try {
-                        currentFileContents = fs.readFileSync(
-                            path.join(currentStudent.rootFolder, currentFilePath),
-                            { encoding: 'utf-8'}
-                        )
-                    } catch (error) {
-                        console.log('Deu ruim: ', error)
+                    if (currentFilePath) {
+                        try {
+                            currentFileContents = fs.readFileSync(
+                                path.join(currentStudent.rootFolder, currentFilePath),
+                                { encoding: 'utf-8'}
+                            )
+                        } catch (error) {
+                            console.log(`Erro lendo arquivo ${currentFilePath}: `, error)
+                        }
                     }
                     
         
                     res.render('index', {
+                        title: currentFilePath ? currentFilePath.substr(Math.max(0, currentFilePath.lastIndexOf('/'))) : 'Atividade',
                         activityName,
                         studentName: currentStudent.name,
                         files: directoryFiles,
@@ -440,6 +485,7 @@ function setupServer() {
             }
         }))
         app.get('/api/annotations/:id', async (req, res) => {
+            const currentStudent = students[currentSubmissionIndex];
             const file = url.parse(req.headers['referer'], true).query.arquivo
             const db = await loadAnnotations(currentStudent.directory, file)
             const id = req.params.id
@@ -451,6 +497,7 @@ function setupServer() {
             }
         })
         app.post('/api/annotations', async (req, res) => {
+            const currentStudent = students[currentSubmissionIndex];
             const file = url.parse(req.headers['referer'], true).query.arquivo
             const db = await loadAnnotations(currentStudent.directory, file)
             const annotation = req.body
@@ -463,13 +510,13 @@ function setupServer() {
             res.json(db[db.length - 1])
         })
         app.put('/api/annotations/:id', async (req, res) => {
+            const currentStudent = students[currentSubmissionIndex];
             const file = url.parse(req.headers['referer'], true).query.arquivo
             const db = await loadAnnotations(currentStudent.directory, file)
             const newAnnotation = req.body
             const id = req.params.id
             const annotationIndex = db.findIndex(an => an.id === id)
-                / home / fegemo / Downloads / js0
-if (annotationIndex !== -1) {
+            if (annotationIndex !== -1) {
                 for (let field in newAnnotation) {
                     db[annotationIndex][field] = newAnnotation[field] 
                 }
@@ -480,6 +527,7 @@ if (annotationIndex !== -1) {
             }
         })
         app.delete('/api/annotations/:id', async (req, res) => {
+            const currentStudent = students[currentSubmissionIndex];
             const file = url.parse(req.headers['referer'], true).query.arquivo
             const db = await loadAnnotations(currentStudent.directory, file)
             const id = req.params.id
@@ -494,6 +542,7 @@ if (annotationIndex !== -1) {
             }
         })
         app.get('/api/search', async (req, res) => {
+            const currentStudent = students[currentSubmissionIndex];
             const file = url.parse(req.headers['referer'], true).query.arquivo
             const db = await loadAnnotations(currentStudent.directory, file)
             const text = req.query.text
@@ -517,7 +566,7 @@ if (annotationIndex !== -1) {
         })
 
         app.use(express.static(__dirname));
-        app.listen(PORT + 1, () => resolve())
+        app.listen(CODE_PORT, () => resolve())
     }))
 }
 
@@ -551,9 +600,14 @@ function persistData() {
 
 
 function getHTMLInjection(student) {
+    const commentPart = student.comment ? `<p style="font-size: 12px; margin-bottom: 0;">${student.comment}</p>` : ``
     return `
-        <div style="display:block; max-width:400px; position:fixed; right:5px; bottom:5px; border-radius:10px; z-index:1000; background:#ffffffaa; border:1px solid gray; padding:1.25em; text-align:center;">
+        <div style="display:block; max-width:540px; position:fixed; right:5px; bottom:5px; border-radius:10px; z-index:1000; background:#ffffffaa; border:1px solid gray; padding:0.75em 1.25em; text-align:center;">
             <span style="color:black; font-size:24px;">${student.name}</span>
+            ${commentPart}
+            <a href="http://localhost:${CODE_PORT}" target="code" style="display: block; color: #fff; background: #c57900; width: fit-content; margin: .5em auto 0em; padding: 0.5em 1em; font-size: 1.1em; box-shadow: 2px 2px 2px #0004; border: 1px solid gray; text-decoration: none;">Ver o código</a>
         </div>
     `
+
+    "background: antiquewhite;"
 }

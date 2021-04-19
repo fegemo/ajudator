@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atividade</title>
+    <title><%= title %></title>
+    <link rel="shortcut icon" href="images/stamps/mario-hammer.png">
     <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500&family=Yusei+Magic&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubunto+Mono&family=Yusei+Magic&display=swap">
     <link rel="stylesheet" href="main.css">
     <link rel="stylesheet" href="highlight.js/styles/default.css">
 </head>
@@ -14,24 +15,70 @@
         <h1>Atividade <%= activityName %></h1>
         <h2>Aluno: <%= studentName %></h2>
     </header>
-    <nav>
-        <p>Arquivos:</p>
-        <ul>
-            <% files.forEach(f => {%>
-                <li class="<%= file && (file.name === f.name) ? 'active' : '' %>">
-                    <% if (f.url) { %>
-                        <a href="<%= f.url %>"><%= f.name %></a>
-                    <% } else { %>
-                        <%= f.name %>
-                    <% } %>
-                </li>
-            <% }) %>
-        </ul>
-    </nav>
+    <div id="left-side">
+        <nav>
+            <p>Arquivos:</p>
+            <ul>
+                <% files.forEach(f => {%>
+                    <li class="<%= file && (file.name === f.name) ? 'active' : '' %>">
+                        <% if (f.url) { %>
+                            <a href="<%= f.url %>"><%= f.name %></a>
+                        <% } else { %>
+                            <%= f.name %>
+                        <% } %>
+                    </li>
+                <% }) %>
+            </ul>
+        </nav>
+        <div id="stamp-button-container">
+            <p>Stickers:</p>
+            <div id="stamp-buttons">
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/link-angry.png" class="stamp-button">
+                </div>
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/mario-hammer.png" class="stamp-button" data-stamp="mario-hammer" data-width="145" data-height="140">
+                </div>
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/star.png" class="stamp-button">
+                </div>
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/me-gusta.png" class="stamp-button">
+                </div>
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/rindo.png" class="stamp-button">
+                </div>
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/surfista.jpg" class="stamp-button">
+                </div>
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/happy.png" class="stamp-button">
+                </div>
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/why.png" class="stamp-button">
+                </div>
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/obama.png" class="stamp-button">
+                </div>
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/intelligent.jpg" class="stamp-button">
+                </div>
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/gratz.jpg" class="stamp-button">
+                </div>
+                <div class="stamp-button-outer">
+                    <img src="images/stamps/gratz-glasses.jpg" class="stamp-button">
+                </div>
+            </div>
+        </div>
+    </div>
     <main>
         <header>
             <h3><%= file.name %></h3>
         </header>
+        <div id="stamps-container">
+            <!-- <img src="images/stamps/mario-hammer.png" class="stamp"> -->
+        </div>
         <pre><code><%= file.sourceCode %></code></pre>
     </main>
     <script src="highlight.js/highlight.pack.js"></script>
