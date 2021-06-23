@@ -237,6 +237,7 @@ code {
         background-color: rgb(101 0 194 / 34%) !important;
         -webkit-print-color-adjust: exact; 
     }
+
     .comment {
         background-color: rgb(101 0 194 / 34%) !important;
         -webkit-print-color-adjust: exact; 
@@ -259,5 +260,9 @@ code {
     tr {
         page-break-inside: avoid;
         break-inside: avoid;
+    }
+
+    .hide-on-print {
+        visibility: hidden;
     }
 }

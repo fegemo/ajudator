@@ -1,5 +1,5 @@
 
-hljs.initHighlightingOnLoad()
+hljs.highlightAll()
 
 setTimeout(() => {
     hljs.initLineNumbersOnLoad()

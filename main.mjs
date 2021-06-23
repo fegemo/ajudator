@@ -29,6 +29,7 @@ const log = logUpdate.create(process.stdout, { showCursor: false });
 const PORT = 3001
 const CODE_PORT = PORT + 1
 const SERVER_URL = `http://localhost:${PORT}`
+const CODE_SERVER_URL = `http://localhost:${CODE_PORT}`
 const SAVED_DATA_PATH = 'notas'
 
 let currentSubmissionIndex = 0;
@@ -73,8 +74,8 @@ rl.on('line', async line => {
 })
 
 
-const MOODLE_FOLDER_REGEX = /([^_]+)_[\d]+_assignsubmission_file_/
-const MOODLE_COMMENT_REGEX = /([^_]+)_[\d]+_assignsubmission_onlinetext_/
+const MOODLE_FOLDER_REGEX = /([^_]+)_[\d]+_assignsubmission_file_/i
+const MOODLE_COMMENT_REGEX = /([^_]+)_[\d]+_assignsubmission_onlinetext_/i
 const MOODLE_COMMENT_TEMPLATE_REGEX = /<!DOCTYPE html><html>/
 const ARCHIVE_EXTENSIONS = ['.zip', '.7z', '.tar.gz', '.tar', '.bzip', '.rar']
 
@@ -160,7 +161,8 @@ fs.readFile('./alunos.json', 'utf-8', (err, data) => {
             }
         
             console.log(`  1. Abra o servidor em ${terminalLink(SERVER_URL, SERVER_URL)}.`);
-            console.log(`  2. Digite uma nota de ${chalk.yellow('0 a 200')} (%) para cada trabalho.`);
+            console.log(`  2. Abra o servidor de código em ${terminalLink(CODE_SERVER_URL, CODE_SERVER_URL)}.`);
+            console.log(`  3. Digite uma nota de ${chalk.yellow('0 a 200')} (%) para cada trabalho.`);
             console.log('')
             await setupServer()
         
@@ -440,7 +442,6 @@ function setupServer() {
                         }
                     }
                     
-        
                     res.render('index', {
                         title: currentFilePath ? currentFilePath.substr(Math.max(0, currentFilePath.lastIndexOf('/'))) : 'Atividade',
                         activityName,
@@ -448,7 +449,8 @@ function setupServer() {
                         files: directoryFiles,
                         file: {
                             name: currentFilePath ? currentFilePath : 'Nenhum arquivo selecionado',
-                            sourceCode: currentFileContents ? currentFileContents : 'Nada para mostrar'
+                            sourceCode: currentFileContents ? currentFileContents : 'Nada para mostrar',
+                            servedPath: currentFilePath ? `${SERVER_URL}/${currentFilePath}` : null
                         }
                     })
                 })
@@ -565,7 +567,7 @@ function setupServer() {
             })
         })
 
-        app.use(express.static(__dirname));
+        app.use(express.static(__dirname, { extensions: ['html', 'html.html', 'css', 'js'] }));
         app.listen(CODE_PORT, () => resolve())
     }))
 }
@@ -608,6 +610,4 @@ function getHTMLInjection(student) {
             <a href="http://localhost:${CODE_PORT}" target="code" style="display: block; color: #fff; background: #c57900; width: fit-content; margin: .5em auto 0em; padding: 0.5em 1em; font-size: 1.1em; box-shadow: 2px 2px 2px #0004; border: 1px solid gray; text-decoration: none;">Ver o código</a>
         </div>
     `
-
-    "background: antiquewhite;"
 }
