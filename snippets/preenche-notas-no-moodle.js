@@ -168,7 +168,7 @@
   const rowSelector = ':scope > tbody > tr:not(.emptyrow)'
   const nameSelector = ':scope > td.cell.c2 a'
   const gradeInputSelector = ':scope > td.cell.c5 input.quickgrade'
-  const commentSelector = ':scope > td.cell.c12 textarea.quickgrade'
+  const commentSelector = ':scope > td.cell.c12 textarea.quickgrade, :scope > td.cell.c11 textarea.quickgrade'
 
   const maxGrade = prompt(`Digite o valor da atividade "${tarefa.tarefa}":`, 2) || 2
   const capGradeAtMax = true

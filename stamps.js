@@ -9,8 +9,6 @@ interact('.stamp-button')
     .draggable({
         listeners: {
             start(e) {
-                console.log('started')
-                console.log(e)
                 // duplica este stamp-button e o coloca na posição do original
                 const clonedEl = e.currentTarget.cloneNode()
                 e.currentTarget.parentNode.appendChild(clonedEl)
@@ -46,7 +44,7 @@ interact('.stamp-button')
         autoScroll: true
     })
 
-interact('main pre').dropzone({
+interact('main pre, main figure').dropzone({
     accept: '.stamp-button',
     overlap: 0.75,
 
@@ -78,8 +76,8 @@ interact('main pre').dropzone({
         stampButtonBeingDroppedEl.classList.add('stamp')
         stampButtonBeingDroppedEl.classList.remove('stamp-button')
         stampButtonBeingDroppedEl.classList.remove('can-drop')
-
-        const codeContainerRect = document.querySelector('main pre').getBoundingClientRect()
+        
+        const codeContainerRect = event.currentTarget.getBoundingClientRect()
         let {x, y, width, height} = stampButtonBeingDroppedEl.getBoundingClientRect()
         const intendedWidth = stampButtonBeingDroppedEl.dataset.width || width
         const intendedHeight = stampButtonBeingDroppedEl.dataset.height || height
@@ -153,13 +151,13 @@ interact('.stamp')
 
 
 function dragMoveListener(event) {
-    var target = event.target
+    const target = event.target
     // keep the dragged position in the data-x/data-y attributes
-    var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx
-    var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy
+    const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx
+    const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy
 
     // translate the element
-    target.style.transform = 'translate(' + x + 'px, ' + y + 'px)'
+    target.style.transform = `translate(${x}px, ${y}px)`
 
     // update the posiion attributes
     target.setAttribute('data-x', x)

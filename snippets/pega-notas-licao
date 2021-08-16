@@ -1,0 +1,67 @@
+function main() {
+    const notaTotal = 1
+    const alunosNaOrdemSIGAA = [
+      "Aline Vitória Silva Nunes",
+      "Ana Clara Almeida Agostinho",
+      "Ana Flavia Arruda de Sousa Oliveira",
+      "Ana Luisa de Souza Santos",
+      "Ana Paula Nascimento Ricardo",
+      "André Henriques Parreiras",
+      "Arthur Araujo Ribeiro",
+      "Arthur Santana de Souza Almeida",
+      "Daniel Neves Oliveira",
+      "Davi Assunção dos Santos",
+      "Davi Martins Lage",
+      "Enzo Bambirra Pinto",
+      "Fabiana Kelly Alves Ribeiro",
+      "Geovana Cristina Vicente Soares",
+      "Gustavo Henrique Fernandes Santana",
+      "Gustavo Marcelo Penido Pereira",
+      "Iasmin de Almeida Furtado",
+      "Isabela Ferreira Florencio de Abreu",
+      "Isabella do Carmo Gomes Pereira",
+      "Israel Davi de Assis Resende",
+      "João Pedro Torres",
+      "Julia Lendell Batista",
+      "Kauã dos Santos Rodrigues",
+      "Letícia Leonardo Pereira",
+      "Luan Pablo Soares Xavier",
+      "Lucas Alexandre de Carvalho Silva",
+      "Miguel Henrique da Silva",
+      "Marcos Antonio Reis Silva",
+      "Maria Eduarda Nunes Silva",
+      "Maria Eduarda Rezende Pereira",
+      "Mateus Henrique Medeiros Diniz",
+      "Penelope Luiza Gonçalves Barbosa",
+      "Priscilla Kellen Ferreira Diniz",
+      "Raissa Fagundes da Silva",
+      "Rayanne Mirelle de Souza Santos",
+      "Ronan Aparecido Vinhal Neto",
+      "Samuel Pereira de Almeida",
+      "Seynabou Sall Coulibaly",
+      "Sofia Pereira Luiz",
+      "Stella Maris Moreira Madureira"
+    ]
+
+
+    const alunoTrSelector = '#mod-lesson-report-form tbody tr'
+    const nomeSelector = 'td:first-of-type'
+    const notaSelector = 'td:last-of-type'
+
+    const alunosTrs = document.querySelectorAll(alunoTrSelector)
+    const nomesENotas = Array.from(alunosTrs).map(tr => ({nome: tr.querySelector(nomeSelector).innerText, nota: parseFloat(tr.querySelector(notaSelector).innerText)}))
+    const nomesENotasParaPlanilha = alunosNaOrdemSIGAA.map(nome => ({nome, nota: nomesENotas.find(nem => comparaNome(nem.nome, nome))?.nota ?? 0}))
+    const resultado = nomesENotasParaPlanilha.map(nn => nn.nome + ';' + (''+(nn.nota/100)).replace('.', ',')).join('\n')
+    console.log(resultado);
+
+
+    function comparaNome(nome1, nome2) {
+        const nameCleanupRegex = /[']/ig
+        nome1 = nome1.replaceAll(nameCleanupRegex, '') 
+        return nome1.toLowerCase() === nome2.toLowerCase();
+    }
+
+
+}
+
+main()

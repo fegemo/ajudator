@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import fs, { readFile } from 'fs';
+import fs from 'fs';
+import { readFile } from 'fs/promises'
 import path from 'path';
 import decompress from 'decompress';
 import seven from '7zip-min';
@@ -14,12 +15,17 @@ import terminalLink from 'terminal-link';
 import { Transform } from 'stream'
 import { promisify } from 'util'
 import express from 'express'
+import session from 'express-session'
+import flash from 'connect-flash'
+import methodOverride from 'method-override'
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import { readdir, readFile as readFilePromise, writeFile as writeFilePromise } from 'fs/promises';
 import crypto from 'crypto';
 import url from 'url'
 import cheerio from 'cheerio'
+import captureWebsite from 'capture-website';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -330,9 +336,20 @@ async function loadAnnotations(directory, file = '') {
         .catch(error => Promise.resolve([]))
 }
 
+async function loadScreenshotData(directory, file = '') {
+    return readFilePromise(path.join(directory, `${sluggify(file)}-screenshot-data.json`), { encoding: 'utf-8' })
+        .then(content => JSON.parse(content))
+        .catch(error => Promise.resolve({}))
+}
+
 async function saveAnnotations(directory, file = '', content) {
     content = JSON.stringify(content, null, 2)
     return writeFilePromise(path.join(directory, `${sluggify(file)}-annotations.json`), content, { encoding: 'utf-8' })
+}
+
+async function saveScreenshotData(directory, file = '', content) {
+    content = JSON.stringify(content, null, 2)
+    return writeFilePromise(path.join(directory, `${sluggify(file)}-screenshot-data.json`), content, { encoding: 'utf-8'})
 }
 
 function getActivityName() {
@@ -361,6 +378,9 @@ function setupServer() {
                                     {
                                         key: 'Cache-Control',
                                         value: 'no-cache'
+                                    }, {
+                                        key: 'Access-Control-Allow-Origin',
+                                        value: '*'
                                     }
                                 ]
                             }
@@ -407,6 +427,10 @@ function setupServer() {
         app.set('views', __dirname)
         app.set('view engine', 'ejs')
         
+        app.use(session({ secret: 'lalala', resave: false, saveUninitialized: true }))
+        app.use(flash())
+        app.use(methodOverride('_method', { methods: ['GET', 'POST'] }))
+
         app.use((req, res, next) => {
             if (req.headers['content-type'] && req.headers['content-type'].startsWith('application/json')) {
                 req.headers['content-type'] = 'application/json'
@@ -415,45 +439,103 @@ function setupServer() {
         })
         app.use(express.urlencoded({ extended: true }));
         app.use(express.json());
-        app.get('/', (req, res) => {
+        app.get('/', async (req, res) => {
             const currentStudent = students[currentSubmissionIndex];
-            let listFiles = currentStudent.rootFolder ? getFiles(currentStudent.rootFolder) : Promise.resolve([])
-            listFiles.then(files => files.map(f => {
-                const fileName = f.substr(f.indexOf(currentStudent.rootFolder) + currentStudent.rootFolder.length + 1)
+            const fileNames = await (currentStudent.rootFolder ? getFiles(currentStudent.rootFolder) : Promise.resolve([]))
+            const files = fileNames.map(filePath => {
                 const file = {
-                    name: fileName,
+                    filePath,
+                    name: filePath.substr(filePath.indexOf(currentStudent.rootFolder) + currentStudent.rootFolder.length + 1)
                 }
-                if (['html', 'css', 'js'].reduce((prev, curr) => prev || fileName.endsWith(curr), false)) {
-                    file.url = `?arquivo=${fileName}`
-                } 
+                if (['html', 'css', 'js', '-screenshot.png'].reduce((prev, curr) => prev || file.name.endsWith(curr), false)) {
+                    file.url = `?arquivo=${file.name}`
+                    file.type = file.name.endsWith('.png') ? 'image' : 'code'
+                }
+                if (file.name.endsWith('html')) {
+                    file.takeScreenshotUrl = `/api/screenshot?arquivo=${file.name}&_method=POST`
+                }
                 return file
-            }))
-                .then(directoryFiles => {
-                    let currentFilePath = req.query.arquivo
-                    let currentFileContents = null
-                    if (currentFilePath) {
-                        try {
-                            currentFileContents = fs.readFileSync(
-                                path.join(currentStudent.rootFolder, currentFilePath),
-                                { encoding: 'utf-8'}
-                            )
-                        } catch (error) {
-                            console.log(`Erro lendo arquivo ${currentFilePath}: `, error)
-                        }
-                    }
-                    
-                    res.render('index', {
-                        title: currentFilePath ? currentFilePath.substr(Math.max(0, currentFilePath.lastIndexOf('/'))) : 'Atividade',
-                        activityName,
-                        studentName: currentStudent.name,
-                        files: directoryFiles,
-                        file: {
-                            name: currentFilePath ? currentFilePath : 'Nenhum arquivo selecionado',
-                            sourceCode: currentFileContents ? currentFileContents : 'Nada para mostrar',
-                            servedPath: currentFilePath ? `${SERVER_URL}/${currentFilePath}` : null
-                        }
+            })
+            
+            let currentFilePath = req.query.arquivo
+            let currentFileContents = null
+            if (currentFilePath && !currentFilePath.endsWith('-screenshot.png')) {
+                try {
+                    currentFileContents = await readFile(
+                        path.join(currentStudent.rootFolder, currentFilePath),
+                        { encoding: 'utf-8'}
+                    )
+                } catch (error) {
+                    // apenas ignora
+                    //console.log(`Erro lendo arquivo ${currentFilePath}: `, error)
+                }
+            }
+            const file = files.find(f => f.filePath.endsWith(currentFilePath)) ?? {}
+
+            res.render('index', {
+                title: currentFilePath ? currentFilePath.substr(Math.max(0, currentFilePath.lastIndexOf('/'))) : 'Atividade',
+                activityName,
+                studentName: currentStudent.name,
+                files,
+                editor: file?.type,
+                file: {
+                    ...file,
+                    name: currentFilePath ? currentFilePath : 'Nenhum arquivo selecionado',
+                    sourceCode: currentFileContents ? currentFileContents : 'Nada para mostrar',
+                    servedPath: currentFilePath ? `${SERVER_URL}/${currentFilePath}` : null,
+                },
+                success: req.flash('success'),
+                error: req.flash('error')
+            })
+        })
+        app.post('/api/screenshot', async (req, res) => {
+            const currentStudent = students[currentSubmissionIndex]
+            const currentFilePath = req.query.arquivo
+            if (currentFilePath) {
+                const screenshotFileUrl = `${path.join(currentStudent.rootFolder, currentFilePath)}-screenshot.png`
+                await captureWebsite.file(
+                    `${SERVER_URL}/${currentFilePath}`,
+                    screenshotFileUrl,
+                    {
+                        fullPage: true,
+                        overwrite: true,
+                        removeElements: ['#student-name']
                     })
+                req.flash('success', 'Screenshot salva.')
+            } else {
+                req.flash('error', 'Arquivo não foi especificado.')
+            }
+            res.redirect(`/?arquivo=${currentFilePath}-screenshot.png`)
+        })
+        app.put('/api/screenshot', async (req, res) => {
+            const currentStudent = students[currentSubmissionIndex]
+            const currentFilePath = req.query.arquivo
+            if (currentFilePath) {
+                const state = req.body
+                await saveScreenshotData(currentStudent.directory, currentFilePath, state)
+                res.status(200).json({})
+            } else {
+                res.status(401).json({
+                    message: 'Erro: esqueceu de passar ?arquivo=...'
                 })
+            }
+        })
+        app.get('/api/screenshot', async (req, res) => {
+            const currentStudent = students[currentSubmissionIndex]
+            const currentFilePath = req.query.arquivo
+            if (currentFilePath) {
+                const state = await loadScreenshotData(currentStudent.directory, currentFilePath)
+                if (state) {
+                    res.json(state)
+                } else {
+                    res.status(204).json({})
+                }
+            } else {
+                res.status(401).json({
+                    message: 'Erro: esqueceu de passar ?arquivo=...'
+                })
+            }
+
         })
 
         app.get('/api', (req, res) => res.json({
@@ -589,7 +671,7 @@ function persistData() {
             })
         }),
         new Promise((res, rej) => {
-            fs.writeFile(SAVED_DATA_PATH + '.csv', 'Nome,Nota\n' + students.map(s=>`${s.name},${s.grade/100}`).join('\n'), (err) => {
+            fs.writeFile(SAVED_DATA_PATH + '.csv', 'Nome;Nota\n' + students.map(s=>`${s.name};${(''+s.grade/100).replace('.', ',')}`).join('\n'), (err) => {
                 if (err) {
                     rej(err)
                 } else {
@@ -604,7 +686,7 @@ function persistData() {
 function getHTMLInjection(student) {
     const commentPart = student.comment ? `<p style="font-size: 12px; margin-bottom: 0;">${student.comment}</p>` : ``
     return `
-        <div style="display:block; max-width:540px; position:fixed; right:5px; bottom:5px; border-radius:10px; z-index:1000; background:#ffffffaa; border:1px solid gray; padding:0.75em 1.25em; text-align:center;">
+        <div id="student-name" style="display:block; max-width:540px; position:fixed; right:5px; bottom:5px; border-radius:10px; z-index:1000; background:#ffffffaa; border:1px solid gray; padding:0.75em 1.25em; text-align:center;">
             <span style="color:black; font-size:24px;">${student.name}</span>
             ${commentPart}
             <a href="http://localhost:${CODE_PORT}" target="code" style="display: block; color: #fff; background: #c57900; width: fit-content; margin: .5em auto 0em; padding: 0.5em 1em; font-size: 1.1em; box-shadow: 2px 2px 2px #0004; border: 1px solid gray; text-decoration: none;">Ver o código</a>

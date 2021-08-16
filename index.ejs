@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="main.css">
     <link rel="stylesheet" href="highlight.js/styles/default.css">
 </head>
-<body>
+<body data-editor-type="<%= editor %>" data-editor-file-name="<%= file?.name %>">
     <header>
         <h1>Atividade <%= activityName %></h1>
         <h2>Aluno: <%= studentName %></h2>
@@ -23,6 +23,9 @@
                     <li class="<%= file && (file.name === f.name) ? 'active' : '' %>">
                         <% if (f.url) { %>
                             <a href="<%= f.url %>"><%= f.name %></a>
+                            <% if (f.takeScreenshotUrl) { %>
+                                <a href="<%= f.takeScreenshotUrl %>">📸</a>
+                            <% } %>
                         <% } else { %>
                             <%= f.name %>
                         <% } %>
@@ -77,10 +80,25 @@
             <h3><%= file.name %><span class="hide-on-print"><% if (file.servedPath) { %> (<a href="<%= file.servedPath %>" target="arquivo-servido">servir arquivo</a>)<% } %></span></h3>
         </header>
         <div id="stamps-container">
-            <!-- <img src="images/stamps/mario-hammer.png" class="stamp"> -->
         </div>
-        <pre><code><%= file.sourceCode %></code></pre>
+        <% if (editor !== 'image') { %>
+            <pre><code><%= file.sourceCode %></code></pre>
+        <% } else { %>
+            <figure>
+                <figcaption>Screenshot</figcaption>
+                <img src="<%= file.servedPath %>" alt="Screenshot" crossorigin="anonymous">
+            </figure>
+        <% } %>
     </main>
+    <% if (success.length || error.length) { %>
+        <div id="notifications">
+            <% if (error.length) { %>
+                <div class="message error shown"><%= error %><div class="close"></div></div>
+            <% } else if (success.length) { %>
+                <div class="message success shown"><%= success %><div class="close"></div></div>
+            <% } %>
+        </div>
+    <% } %>
     <script src="highlight.js/highlight.min.js"></script>
     <script src="highlight.js/highlightjs-line-numbers.min.js"></script>
     <script src="annotator/annotator.min.js"></script>
