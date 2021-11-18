@@ -58,3 +58,26 @@ PDF gerados. No final, selecionar todas as pastas de alunos e gerar um arquivo `
 escolher a ação  "Fazer upload de múltiplos arquivos..." e submeter o arquivo `.zip` gerado.
 
 ![Tela do Moodle mostrando bem no topo da página a opção de fazer upload de múltiplos arquivos](docs/upload.webp)
+
+
+## Comparação de plágio
+
+Também há o executável `compare`, que faz uma comparação
+da _abstract syntax tree_ entre dois ou mais arquivos especificados. Para usar:
+
+```bash
+compare-ast arquivo1.js arquivo2js arquivo3.js ...
+```
+
+A saída mostra uma tabela que compara todos contra todos.
+É feita uma verificação de quantidade de divergências,
+e também é mostrado um índice de disparidade entre
+duplas de arquivos: quanto menor, mais semelhantes.
+
+Não são consideradas divergências:
+1. Espaço em branco
+2. Nomes de variáveis, funções ou literais
+
+
+Exemplo de saída:
+![Tela do terminal mostrando a execução de compare-ast a.js b.js c.js com uma tabela comparativa dos resultados de plágio entre os arquivos](docs/compare-ast.png)

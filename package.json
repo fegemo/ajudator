@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "7zip-min": "^1.2.0",
+    "acorn": "^8.5.0",
     "capture-website": "^2.0.2",
     "chalk": "^4.1.0",
     "cheerio": "^1.0.0-rc.5",
@@ -26,6 +27,7 @@
     "unrar": "^0.2.0"
   },
   "bin": {
-    "ajudator": "./main.mjs"
+    "ajudator": "./main.mjs",
+    "compare-ast": "./compare-ast.mjs"
   }
 }
