@@ -10,7 +10,7 @@ import http from 'http';
 import unrar from 'unrar';
 import readline from 'readline';
 import chalk from 'chalk';
-import logUpdate from 'log-update';
+import { createLogUpdate } from 'log-update';
 import terminalLink from 'terminal-link';
 import { Transform } from 'stream'
 import { promisify } from 'util'
@@ -31,7 +31,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 
-const log = logUpdate.create(process.stdout, { showCursor: false });
+const log = createLogUpdate(process.stdout, { showCursor: false });
 const PORT = 3001
 const CODE_PORT = PORT + 1
 const SERVER_URL = `http://localhost:${PORT}`
